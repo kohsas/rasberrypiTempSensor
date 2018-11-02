@@ -112,7 +112,8 @@ if args.mode == 'both' or args.mode == 'subscribe':
 time.sleep(2)
 
 # Publish to the same topic in a loop forever
-loopCount = 20
+internaTemp = 20
+externalTemp = 30
 while True:
     if args.mode == 'both' or args.mode == 'publish':
         now = datetime.utcnow()
@@ -121,11 +122,20 @@ while True:
         #
         message = {}
         message['timestamp'] = now_str
-        loopCount = loopCount + (random() + randint(-1,1))
-        message['temperature'] = str(loopCount)
+        internaTemp = internaTemp + (random() + randint(-1,1))
+        message['temperature'] = internaTemp
+        message['device'] = 'Mallige_b827ebb2c9da-internal'
         messageJson = json.dumps(message)
         myAWSIoTMQTTClient.publish(topic, messageJson, 1)
         if args.mode == 'publish':
             print('Published topic %s: %s\n' % (topic, messageJson))
-        loopCount += 1
+        internaTemp += 1
+        externalTemp = externalTemp + (random() + randint(-1,1))
+        message['temperature'] = externalTemp
+        message['device'] = 'Mallige_b827ebb2c9da-external'
+        messageJson = json.dumps(message)
+        myAWSIoTMQTTClient.publish(topic, messageJson, 1)
+        if args.mode == 'publish':
+            print('Published topic %s: %s\n' % (topic, messageJson))
+        externalTemp += 1
     time.sleep(60)

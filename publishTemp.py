@@ -31,19 +31,22 @@ os.system('modprobe w1-therm') # Turns on the Temperature module
 
 # Finds the correct device file that holds the temperature data
 base_dir = '/sys/bus/w1/devices/'
-device_folder = glob.glob(base_dir + '28*')[0]
-device_file = device_folder + '/w1_slave'
+internal_sensor = glob.glob(base_dir + '28-021391773b07')[0]
+internal_device_file = internal_sensor + '/w1_slave'
+
+external_sensor = glob.glob(base_dir + '28-020e9177ea13')[0]
+external_device_file = external_sensor + '/w1_slave'
 
 # A function that reads the sensors data
-def read_temp_raw():
-  f = open(device_file, 'r') # Opens the temperature device file
+def read_temp_raw(sensor_file):
+  f = open(sensor_file, 'r') # Opens the temperature device file
   lines = f.readlines() # Returns the text
   f.close()
   return lines
 
 # Convert the value of the sensor into a temperature
-def read_temp():
-  lines = read_temp_raw() # Read the temperature 'device file'
+def read_temp(sensor_file):
+  lines = read_temp_raw(sensor_file) # Read the temperature 'device file'
 
   # While the first line does not contain 'YES', wait for 0.2s
   # and then read the device file again.
@@ -152,8 +155,6 @@ if args.mode == 'both' or args.mode == 'subscribe':
 time.sleep(2)
 
 # Publish to the same topic in a loop forever
-internaTemp = 20
-externalTemp = 30
 while True:
     if args.mode == 'both' or args.mode == 'publish':
         now = datetime.utcnow()
@@ -162,21 +163,18 @@ while True:
         #
         message = {}
         message['timestamp'] = now_str
-        internaTemp = internaTemp + (random() + randint(-1,1))
-        internalTemp = read_temp()
-        message['temperature'] = internaTemp
+        internalTemp, f = read_temp(internal_device_file)
+        message['temperature'] = internalTemp
         message['device'] = 'Mallige_b827ebb2c9da-internal'
         messageJson = json.dumps(message)
         myAWSIoTMQTTClient.publish(topic, messageJson, 1)
         if args.mode == 'publish':
             print('Published topic %s: %s\n' % (topic, messageJson))
-        internaTemp += 1
-        externalTemp = externalTemp + (random() + randint(-1,1))
+        externalTemp , f = read_temp(external_device_file)
         message['temperature'] = externalTemp
         message['device'] = 'Mallige_b827ebb2c9da-external'
         messageJson = json.dumps(message)
         myAWSIoTMQTTClient.publish(topic, messageJson, 1)
         if args.mode == 'publish':
             print('Published topic %s: %s\n' % (topic, messageJson))
-        externalTemp += 1
     time.sleep(60)
